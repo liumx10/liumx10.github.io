@@ -33,9 +33,9 @@ end
 <p>然而另外一种场景，lock conversion。两个transaction分别先读，然后写，这时候需要把读锁升级成写锁。如果恰好两个都获得了读锁，而想升级到写锁，就卡住了。</p>
 <h2 id="3-3-正确性证明"><a href="#3-3-正确性证明" class="headerlink" title="3.3 正确性证明"></a>3.3 正确性证明</h2><p>2pl的正确性证明，其实并不复杂。我们还是沿用之前SG的方式。</p>
 <ol>
-<li>如果有$T_i \rightrow T_j$的形式，那么i一定先释放了某个锁，然后j获得了某个锁。</li>
-<li>如果有一个链状的关系 $T_i \rightrow T_i \rightrow T_k$，因为每个transaction内部获得锁一定先于释放锁，所以i释放了第一个锁，然后j获得了第一个锁，然后j释放了第二个锁，然后k获得了第二个锁，这四个步骤一定是有先后关系的。也就是说，i释放了某个锁之后，k获得了某个锁（这两个锁不一定是同一个数据）</li>
-<li>如果有环，$T_i \rightrow T_i \rightrow … T_n  \rightrow T_i $，那么i释放了某个锁，然后i有获得了某个锁。这与定义矛盾，不可能。</li>
+<li>如果有$T_i \rightarrow T_j$的形式，那么i一定先释放了某个锁，然后j获得了某个锁。</li>
+<li>如果有一个链状的关系 $T_i \rightarrow T_i \rightarrow T_k$，因为每个transaction内部获得锁一定先于释放锁，所以i释放了第一个锁，然后j获得了第一个锁，然后j释放了第二个锁，然后k获得了第二个锁，这四个步骤一定是有先后关系的。也就是说，i释放了某个锁之后，k获得了某个锁（这两个锁不一定是同一个数据）</li>
+<li>如果有环，$T_i \rightarrow T_i \rightarrow … T_n  \rightarrow T_i $，那么i释放了某个锁，然后i有获得了某个锁。这与定义矛盾，不可能。</li>
 </ol>
 <p>所以SG是无环的。因此2pl可以保证serializable。</p>
 <p>数学语言的推导这里就不赘述了。有兴趣的可以看原文。</p>
