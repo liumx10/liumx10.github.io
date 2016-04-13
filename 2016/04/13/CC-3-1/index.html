@@ -1,0 +1,65 @@
+<!DOCTYPE html><html lang="en"><head><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description"><title>CC(3) 2PL(1) | Dreamworks</title><link rel="stylesheet" type="text/css" href="/css/style.css?v=0.0.0"><link rel="stylesheet" type="text/css" href="//cdn.bootcss.com/normalize/3.0.3/normalize.min.css"><link rel="stylesheet" type="text/css" href="//cdn.bootcss.com/pure/0.6.0/pure-min.css"><link rel="stylesheet" type="text/css" href="//cdn.bootcss.com/pure/0.6.0/grids-responsive-min.css"><link rel="stylesheet" href="//cdn.bootcss.com/font-awesome/4.5.0/css/font-awesome.min.css"><script type="text/javascript" src="//cdn.bootcss.com/jquery/2.2.1/jquery.min.js"></script><link rel="Shortcut Icon" type="image/x-icon" href="/favicon.ico"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden">CC(3) 2PL(1)</h1><a id="logo" href="/.">Dreamworks</a><p class="description"></p></div><div id="nav-menu"><a href="/." class="current"><i class="fa fa-home"> Home</i></a><a href="/archives/"><i class="fa fa-archive"> Archive</i></a><a href="/about/"><i class="fa fa-user"> About</i></a><a href="/atom.xml"><i class="fa fa-rss"> RSS</i></a></div></div><div id="layout" class="pure-g"><div class="pure-u-1 pure-u-md-3-4"><div class="content_container"><div class="post"><h1 class="post-title">CC(3) 2PL(1)</h1><div class="post-meta">Apr 13, 2016<script src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js" async></script><span id="busuanzi_container_page_pv"> | <span id="busuanzi_value_page_pv"></span><span> Hits</span></span></div><div class="post-content"><p>两阶段锁协议(2 phase lock, 简称2pl)是非常非常重要的一种并发控制的方法。现有的很多商业软件中都使用这种方法。这一章会重点介绍2pl，开始时候介绍单机的2pl，之后经过简单的调整就可以用到多机上。</p>
+<p>主流有两种控制协议：一种是乐观的，不管三七二十一，来了一个请求就开始做，做到最后发现不对了就直接abort；另外一种是悲观的，如果发现可能会出现conflict，就提前停下来，这样从源头上阻止了坏事的发生。2pl用了锁，属于后者。</p>
+<p>而悲观协议有个要求就是transaction需要对全局有个把控，即知道自己将来会操作什么数据（就是读写数据集，即readset和writeset）。最极端的，就是一开始就知道这两个数据集。</p>
+<p>这种策略的坏处就是缩放的太过分了。最简单的如下面的例子</p>
+<pre><code>Procedure Fuzzy-readset begin
+    Start;
+    a := Read(x)
+    if (a&gt;0) then b:=Read(y) else b:= Read(z)
+    Commit
+end
+</code></pre><p>本来只需要读y或者z，但是如用上面那种方式就需要全部读。降低了系统的并发度。而且这种现象在关系型数据库中会更为严重。所以一般不采用。</p>
+<h2 id="3-2-基本版的2pl"><a href="#3-2-基本版的2pl" class="headerlink" title="3.2 基本版的2pl"></a>3.2 基本版的2pl</h2><p>上锁一般是一种很常见的解决冲突的方式。如果对操作系统这门课有印象，有一种锁叫读写锁，这里会使用它们。</p>
+<p>首先，我们给出几个符号。$rl_i[x]和wl_i[x]$分别表示$T_i$对x这个数据上读锁和写锁。如果不明确表示读或者写，我们可以用$ol_i[x]$来替代（或者p，q）。如果x == y，而i不等于j，操作p和操作q冲突，那么我们称$pl_i[x]$和$ql_i[x]$冲突。也就是说，不同的transaction，作用于同一个数据，而且操作是冲突的，那么这两个锁也是冲突的。</p>
+<p>对应的，有解锁操作。用$ou_i[x]$这样的符号来表示。</p>
+<p>下面介绍basic的2pl的调度策略：</p>
+<ol>
+<li>如果想要获得锁$p_i[x]$，首先检测有没有冲突的锁已经被设置了，如果有，delay；如果没有，获得该锁。然后把相应操作传给DM(Data manager)</li>
+<li>一旦获得锁，只有等到DM确认相应操作已经执行完毕，才会释放锁。</li>
+<li>一个transaction一旦开始释放一个锁，不会再试图获取任何锁。</li>
+</ol>
+<p>前两条很好理解，一般上锁的程序都是这么干的。最后一条是2pl的核心。也就是为什么称为2 phase：growing phase（获得锁）和shrinking phase（释放锁）。这条规则保证了任意两个transaction中conflict的操作顺序一致（也就是serializable）</p>
+<p>举个例子吧，两个transaction：</p>
+<blockquote>
+<p>$T_1: r_1[x] \rightarrow w_1[x] \rightarrow c_1, T_2: w_2[x] \rightarrow w_2[y] \rightarrow c_2$</p>
+</blockquote>
+<p>然后history如下：</p>
+<blockquote>
+<p>$H_1 = rl_1[x]r_1[x]ru_1[x]wl_2[x]w_2[x]wu_2[x]wl_2[y]w_2[y]wu_2[y]c_2wl_1[y]w_1[y]wu_1[y]c_1$</p>
+</blockquote>
+<p>于是乎SG中出现了环，不是serializable的了。（很显然其实，锁只能保证同一时间内一个operation是原子的，如果只有1.2限制条件，有根没有没什么区别，因为这些operation本身就是原子的）</p>
+<p>而加上条件3的限制，等于在获得锁和释放锁之间人为加上了时间窗口。之后会证明这种方式的正确性。</p>
+<p>一旦涉及锁，一个重要的问题就是死锁。调换一下T2里面xy的顺序，就有可能造成一种死锁。T1获得x，T2获得y，双方都在等对方的锁。所以有的文章里用的方法是写程序时，要求上锁的顺序必须按照一个全局的顺序来。这样不会出现互相等的情况。比如强制要求必须先上x，再上y，这样就可以避免上面的问题。</p>
+<p>然而另外一种场景，lock conversion。两个transaction分别先读，然后写，这时候需要把读锁升级成写锁。如果恰好两个都获得了读锁，而想升级到写锁，就卡住了。</p>
+<h2 id="3-3-正确性证明"><a href="#3-3-正确性证明" class="headerlink" title="3.3 正确性证明"></a>3.3 正确性证明</h2><p>2pl的正确性证明，其实并不复杂。我们还是沿用之前SG的方式。</p>
+<ol>
+<li>如果有$T_i \rightrow T_j$的形式，那么i一定先释放了某个锁，然后j获得了某个锁。</li>
+<li>如果有一个链状的关系 $T_i \rightrow T_i \rightrow T_k$，因为每个transaction内部获得锁一定先于释放锁，所以i释放了第一个锁，然后j获得了第一个锁，然后j释放了第二个锁，然后k获得了第二个锁，这四个步骤一定是有先后关系的。也就是说，i释放了某个锁之后，k获得了某个锁（这两个锁不一定是同一个数据）</li>
+<li>如果有环，$T_i \rightrow T_i \rightrow … T_n  \rightrow T_i $，那么i释放了某个锁，然后i有获得了某个锁。这与定义矛盾，不可能。</li>
+</ol>
+<p>所以SG是无环的。因此2pl可以保证serializable。</p>
+<p>数学语言的推导这里就不赘述了。有兴趣的可以看原文。</p>
+<h2 id="3-4-死锁"><a href="#3-4-死锁" class="headerlink" title="3.4 死锁"></a>3.4 死锁</h2><p>因为3.2中的描述，死锁很难避免，那么我们就进行死锁检测吧。如果检测到死锁，就把相关的transaction给abort掉，然后把锁释放。</p>
+<p>一种死锁检测的方式就是timeout，如果超时认为自己涉及到死锁了。然后”自杀”。当然有可能会误杀，但是并不影响正确性，只影响性能。timeout的阈值越大，误杀的概率越小，但是碰到死锁，反应的时间也会变长。所以这是一个tradeoff。</p>
+<p>另外一种方式就是精确检测。需要画出一个等待图，waits-for graph(WFG)，每个节点就是一个transaction。如果有人获得锁，而另外一个transaction等这个锁，那么就连一个有向边。如果有环，说明就有死锁。</p>
+<p>单机的时候比较好做，因为TM只有一个。WFG也只有一个。每有一个等待锁的操作，就在WFG里面加一个边，一个锁得到了，就删掉一个边。那么多久检测一次合适呢？如果每次加边都要搜索一次图，overhead太大；如果太久检测一次，反应就比较慢。也是一个tradeoff。</p>
+<p>如果检测到死锁怎么办呢，只需要在环上删除一个节点（即abort一个transaction，释放掉它获得的锁）就可以了。选择这个牺牲者也需要很多技巧，考虑多方面的因素。</p>
+<ol>
+<li>考虑到该transaction已经执行的量，即沉默成本。</li>
+<li>abort本身的代价。</li>
+<li>如果不abort，还有多久就会完成。TM比较倾向于“放过”那些即将执行完毕的transaction。毕竟人家也不容易。</li>
+<li>牺牲这一个，能打破多少个圈。如果全都打破了当然是最好的了。</li>
+</ol>
+<p>而且某种情形下，一个transaction可能会abort、重启、死锁、abort这样的循环（命途多舛）。所以，还需要记录一个transaction被abort的次数。太多了的话，可能需要特殊处理，比如放过它吧。<a href="http://dl.acm.org/citation.cfm?id=2592815" target="_blank" rel="external">陈海波的一篇论文</a>里面就用到了类似的方式。原理差不多。</p>
+</div><script type="text/javascript" src="/js/share.js?v=0.0.0" async></script><a data-url="http://liumx10.github.io/2016/04/13/CC-3-1/" data-id="cimyvhwq30006gkclhtzqvc7q" class="article-share-link">Share</a><div class="tags"><a href="/tags/concurrency-control/">concurrency control</a></div><div class="post-nav"><a href="/2016/04/06/Distributed-snapshot/" class="next">Distributed snapshot</a></div></div></div></div><div class="pure-u-1-4"><div id="sidebar"><div class="widget"><form action="//www.google.com/search" method="get" accept-charset="utf-8" target="_blank" class="search-form"><input type="text" name="q" maxlength="20" placeholder="Search"/><input type="hidden" name="sitesearch" value="http://liumx10.github.io"/></form></div><div class="widget"><div class="widget-title"><i class="fa fa-folder-o"> Categories</i></div></div><div class="widget"><div class="widget-title"><i class="fa fa-star-o"> Tags</i></div><div class="tagcloud"><a href="/tags/distributed-system/" style="font-size: 15px;">distributed system</a> <a href="/tags/concurrency-control/" style="font-size: 15px;">concurrency control</a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-file-o"> Recent</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2016/04/13/CC-3-1/">CC(3) 2PL(1)</a></li><li class="post-list-item"><a class="post-list-link" href="/2016/04/06/Distributed-snapshot/">Distributed snapshot</a></li><li class="post-list-item"><a class="post-list-link" href="/2016/04/06/GFS/">GFS</a></li><li class="post-list-item"><a class="post-list-link" href="/2016/03/28/cc2-2/">CC(2) "2. Serializability Theory(下)"</a></li><li class="post-list-item"><a class="post-list-link" href="/2016/03/27/hello-world/">Hello World</a></li><li class="post-list-item"><a class="post-list-link" href="/2016/03/27/cc2-1/">CC(2) "2. Serializability Theory(上)"</a></li><li class="post-list-item"><a class="post-list-link" href="/2016/03/14/cc-1/">CC(1) "1. The Problem"</a></li><li class="post-list-item"><a class="post-list-link" href="/2016/03/07/lock-free/">lock-free</a></li><li class="post-list-item"><a class="post-list-link" href="/2016/02/28/Branch-Prediction/">Branch-Prediction</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-external-link"> Blogroll</i></div><ul></ul><a href="http://madsys.cs.tsinghua.edu.cn/" title="madsys" target="_blank">madsys</a></div></div></div><div class="pure-u-1 pure-u-md-3-4"><div id="footer">© <a href="/." rel="nofollow">Dreamworks.</a> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a><a rel="nofollow" target="_blank" href="https://github.com/tufu9441/maupassant-hexo"> Theme</a> by<a rel="nofollow" target="_blank" href="https://github.com/pagecho"> Cho.</a></div></div></div><a id="rocket" href="#top" class="show"></a><script type="text/javascript" src="/js/totop.js?v=0.0.0" async></script><script type="text/javascript" src="//cdn.bootcss.com/fancybox/2.1.5/jquery.fancybox.pack.js" async></script><script type="text/javascript" src="/js/fancybox.js?v=0.0.0" async></script><link rel="stylesheet" type="text/css" href="/css/jquery.fancybox.css?v=0.0.0"><script type="text/x-mathjax-config">MathJax.Hub.Config({"HTML-CSS": { preferredFont: "TeX", availableFonts: ["STIX","TeX"], linebreaks: { automatic:true }, EqnChunk: (MathJax.Hub.Browser.isMobile ? 10 : 50) },
+      tex2jax: { inlineMath: [ ["$", "$"], ["\\(","\\)"] ], processEscapes: true, ignoreClass: "tex2jax_ignore|dno",skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']},
+      TeX: {  noUndefined: { attributes: { mathcolor: "red", mathbackground: "#FFEEEE", mathsize: "90%" } }, Macros: { href: "{}" } },
+      messageStyle: "none"
+  });
+</script><script type="text/x-mathjax-config">MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for(i=0; i < all.length; i += 1) {
+        all[i].SourceElement().parentNode.className += ' has-jax';
+    }
+});
+</script><script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script><script type="text/javascript" src="/js/codeblock-resizer.js?v=0.0.0"></script><script type="text/javascript" src="/js/smartresize.js?v=0.0.0"></script></div></body></html>

@@ -1,0 +1,79 @@
+<!DOCTYPE html><html lang="en"><head><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description"><title>CC(2) &quot;2. Serializability Theory(下)&quot; | Dreamworks</title><link rel="stylesheet" type="text/css" href="/css/style.css?v=0.0.0"><link rel="stylesheet" type="text/css" href="//cdn.bootcss.com/normalize/3.0.3/normalize.min.css"><link rel="stylesheet" type="text/css" href="//cdn.bootcss.com/pure/0.6.0/pure-min.css"><link rel="stylesheet" type="text/css" href="//cdn.bootcss.com/pure/0.6.0/grids-responsive-min.css"><link rel="stylesheet" href="//cdn.bootcss.com/font-awesome/4.5.0/css/font-awesome.min.css"><script type="text/javascript" src="//cdn.bootcss.com/jquery/2.2.1/jquery.min.js"></script><link rel="Shortcut Icon" type="image/x-icon" href="/favicon.ico"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden">CC(2) &quot;2. Serializability Theory(下)&quot;</h1><a id="logo" href="/.">Dreamworks</a><p class="description"></p></div><div id="nav-menu"><a href="/." class="current"><i class="fa fa-home"> Home</i></a><a href="/archives/"><i class="fa fa-archive"> Archive</i></a><a href="/about/"><i class="fa fa-user"> About</i></a><a href="/atom.xml"><i class="fa fa-rss"> RSS</i></a></div></div><div id="layout" class="pure-g"><div class="pure-u-1 pure-u-md-3-4"><div class="content_container"><div class="post"><h1 class="post-title">CC(2) &quot;2. Serializability Theory(下)&quot;</h1><div class="post-meta">Mar 28, 2016<script src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js" async></script><span id="busuanzi_container_page_pv"> | <span id="busuanzi_value_page_pv"></span><span> Hits</span></span></div><div class="post-content"><p>第二章下半部分</p>
+<h3 id="2-4-Recoverable-History"><a href="#2-4-Recoverable-History" class="headerlink" title="2.4 Recoverable History"></a>2.4 Recoverable History</h3><p>之前我们提过，一个正确的调度，不仅仅应该支持SR(serializable),同时也应该是Recoverable的。这一点还有很多具体的要求。比如防止连锁aborts和loss before image（A写，B写，A abort，同时改掉了B写的数据），也就是要“strict execution”。这些概念也可以用上面的语言来描述。</p>
+<p>首先定义$T_i$读$T_j$的数据，这一说法的具体含义：</p>
+<ol>
+<li>$w_j[x] &lt; r_i[x]$</li>
+<li>$a_j 不小于 r_i[x]$ and</li>
+<li>if there is some $w_k[x], w_j[x] &lt; w_k[x] &lt; r_i[x]$, then $ a_k &lt; r_i[k]$</li>
+</ol>
+<p>也就是说，j写了一个数据，在i读之前没有没有人写，即使有也在i读之前abort了。而且i自己abort必须在读之后。<br>同时，一个transaction也可以自己读自己的。</p>
+<p>所以回顾RC(recoverable)的定义，任何时候$T_i$读$T_j$，并且$c_i \in H$，$c_j &lt; c_i$，这样的history称为RC。</p>
+<p>如果把条件改为$c_j &lt; r_i[x]$，那么就是avoids cascading aborts(ACA)的history了。</p>
+<p>只要$w_j &lt; o_i[x],那么，要么$a_j &lt; o_[x]$ or $c_j &lt; o_i[x]$。其中o表示r/w。也就是说，A写了数据，B想操作它，必须等他commit或者abort之后才可以。</p>
+<p><img src="/img/history2.png" alt=""></p>
+<p>举个例子吧，上图中，$H_7$就是非RC的，因为2读了1，但是2先commit了。$H_8$是RC，但是非ACA，因为2读了1，但是没有等到1commit之后再读。而$H_9$是ACA，但是非ST(strict)，因为2在1commit之前就写了。记住RC, ACA, ST, SR这几个标记，我们之后讨论都会用这几个省略符号（一个个敲英文单词太蛋疼）</p>
+<blockquote>
+<p>定理2.2: $ ST \subset ACA \subset RC $</p>
+</blockquote>
+<p>实际上大家应该能够猜出来。下面进行比较严格的证明。（所以这帮人把计算机上升成一门科学不是没有道理的）</p>
+<blockquote>
+<p>Proof: 如果 $H \in ST$, $H$中$T_i读T_j$，数据是x。根据transaction read from的定义，所以$w_j[x] &lt; r_i[x]且a_j不小于r_i[x]$，因为SR的定义，一定有$c_j &lt; r_i[x]$。这就和ACA的定义是一样的了。换句话说，ST要求写数据之后，别人的读写必须在自己commit或者abort之后；而read from要求必须在读之前不能abort，所以为了满足条件，只能在读之前commit了。</p>
+<p>现在$H \in ACA$,假设$T_i读T_j$，且$c_i \in H$.(不commit就没有讨论的必要了)。因为ACA的定义, $w_j[x] &lt; c_j &lt; r_i[x]$，又因为$r_i[x] &lt; c_i$。所以$c_j &lt; c_i$，所以$H$也是RC的。</p>
+</blockquote>
+<p>但是SR和RC,ACA,ST是交叉而不是包含被包含的关系。具体见下图。<br><img src="/img/history4.png" alt=""></p>
+<p>下面介绍一个很重要的概念，叫做prefixed commit-closed property。一个属性，如果对于H是真，那么对于任何H的前缀H’,该属性也满足C(H’)。这个概念的意义在于，DBS随时都有可能挂掉，恢复的时候只能恢复成C(H’)。比如说有一种属性是“正确”，所以C(H’)也必须是”正确“的。那么任何时候挂掉重启，都是“正确“的。（有点晦涩，意会一下）</p>
+<p>之前讨论的RC,ACA,ST都是prefixed commit-closed property。下面证明serializability也是：</p>
+<blockquote>
+<p>定理2.3: Serializability 是一个prefixed commit-closed property</p>
+<p>Proof: H是SR，所以SG(H)是无环的。H’是一个前缀，所以SG(C(H’))是SG(H)的子图，所以也是无环的，所以H’是SR。证毕</p>
+</blockquote>
+<h3 id="2-5-读写之外的操作"><a href="#2-5-读写之外的操作" class="headerlink" title="2.5 读写之外的操作"></a>2.5 读写之外的操作</h3><p>我们之前的讨论，都是假设整个DBS只有读写两种操作，这显然是不可能的。</p>
+<p>但是我们发现，之前讨论的核心概念是”冲突“，之前的概念是至少有一个是写操作；我们可以把这个概念扩充一下：两个操作的执行顺序会影响最终的结果（结果的意思是最终该操作返回的结果和它读到的数据）。进一步分析定理2.1，我们只用到了冲突这个概念，所以定理2.1还是成立的。</p>
+<p>举个例子，有两个基本操作，increment和decrement，都是在原数据的基础上，进行加减。所以它们彼此之间是没有冲突的。再加上read，write，这四个操作我们可以画出一个兼容表。读只和读兼容，写和任何操作都不兼容；increment/decrement彼此兼容。</p>
+<p><img src="/img/compatibility_matrix.png" alt=""></p>
+<p>在此基础上，我们再画SG图，可以判断一个history是不是serializable的了。</p>
+<h3 id="2-6-View-Equivalence"><a href="#2-6-View-Equivalence" class="headerlink" title="2.6 View Equivalence"></a>2.6 View Equivalence</h3><p>我们之前讨论了半天 history equivalence, 核心为了判断两个history是不是拥有相同的结果。结果呈现的状态就是所有没有被abort的transaction的写操作。</p>
+<p>我们不知道每个transaction会写什么，我们只知道，它读了一些数据，然后根据读的数据写了一些数据。（依赖读操作的个数为0~n个）。所以，如果两个history读的数据来源是一样的，写的数据肯定会一样。所以可以得到两个结论：</p>
+<ol>
+<li>如果两个history读的数据，是来自相同的写操作；那么两个history所有写操作，写的内容是一样的。</li>
+<li>如果每一个数据x，最后一个写操作写入的数据一样，那么两个history是等价的。</li>
+</ol>
+<p>关于第一点，这里做一个简单的解释。实际上用归纳法可以证明；</p>
+<ol>
+<li>最开始初始化的数据都是相同的</li>
+<li>如果某一个$w_i[x]$,其读取的数据来源在H和H’中也是相同的，其输出结果一定是相同的。</li>
+</ol>
+<p>然后根据1，2可以递推，两个history所有写操作的结果一定是一样的。</p>
+<p>我们定义final write为：$w_i[x] \in H, a_i \notin H$, any $w_j[x] \in H, (j \not \equiv i)$, either $w_j[x] &lt; w_i[x]$ or $a_j \in H$, 然后定义history equivalence:</p>
+<ol>
+<li>有着相同的transaction和操作；</li>
+<li>任何$T_i, T_j$，其中$a_i, a_j \notin H, H’$，任意x，如果H中$T_i$从$T_j$读取x，那么H’中亦然</li>
+<li>任何x，H中如果final write是$w_i[x]$，H’中亦然。</li>
+</ol>
+<p>细细品味，这里的定义和之前history equivalence的定义(所有conflict操作的顺序是一样的)还是有所区别的。所以我们把这种称之为view equivalence，而之前的称为conflict equivalence</p>
+<h3 id="View-Serializability"><a href="#View-Serializability" class="headerlink" title="View Serializability"></a>View Serializability</h3><p>我们可以从上面的定义，引申出view serializability的概念：即H的任意前缀H’，C(H’)和某一个serial history 是view equivalent的。</p>
+<p>为什么要强调任意前缀，我们举一个例子：<br>$H_12 = w_1[x]w_2[x]w_2[y]c_2w_1[y]c_1w_3[x]w_3[y]c_3$</p>
+<p>如果根据view equivalence的定义，该history是等价于$T_1T_2T_3$的。首先没有transaction有读，所以第一条肯定满足；其次最后写的xy都是3，第二条也满足。</p>
+<p>但是如果截取前缀，只看到$c_1$那一段，那么这一个history不等价于任何serial history。因为最后写x、y的分别来自1、2。</p>
+<p>这样就破坏了commit-closed的特性。</p>
+<p>可以证明，conflict serializable是view serializable的真子集。</p>
+<blockquote>
+<p>定理2.4: 如果H是conflict serializable，那么一定是view serializable；反之不一定。</p>
+<p>Proof: H是conflict serializable的，任意前缀H’,C(H’)一定conflict equivalence某个serial history$H_s$。<br>假设在c(H’)中$T_i$从$T_j$中读了数据x，那么$w_ij[x] &lt;_{c(H’)} r_i[x]$且没有其他的写在二者之间。因为conflict serializable的定义，而且读写就是冲突操作，所以在$H_s$中，也保持这样的关系。$w_ij[x] &lt;_{c(H’)} r_i[x]$且没有其他的写在二者之间。也就是说，在$H_s$中$T_i$从$T_j$中读了数据x。这样满足了条件1.<br>再看，如果c(H’)中最后一个写操作是$T_i$，那么没有一个k，使得$w_i[x] &lt; w_k[x]$。所以，也不会在$H_s$中出现这样的现象，否则冲突关系就不一样了。所以也就满足了条件2</p>
+</blockquote>
+<p>证明反之不成立举一个反例就可以了。比如上一个例子，$H_12$是view serializable的，但是画SG图我们可以发现，是有环的。所以反之不成立。</p>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>第二章介绍完了，重要的概念就是history。对于serializable的要求，我们用history equivalence来证明一个history的可连续性，一个重要的方法就是画出SG；对于Recoverable的要求，我们给了read from的定义，然后用数学方法证明了几种调度策略的包含关系。</p>
+<p>另外一点需要强调的是view equivalence和conflict equivalence的区别。前者是我们实际需要看到的，感官上的结果；后者更加严格一点。</p>
+<p>下面几章会具体介绍调度算法，会用到这一章的理论来证明算法的正确性。</p>
+</div><script type="text/javascript" src="/js/share.js?v=0.0.0" async></script><a data-url="http://liumx10.github.io/2016/03/28/cc2-2/" data-id="cimyvhptp0004gkclmc63k2q2" class="article-share-link">Share</a><div class="tags"><a href="/tags/concurrency-control/">concurrency control</a></div><div class="post-nav"><a href="/2016/04/06/GFS/" class="pre">GFS</a><a href="/2016/03/27/hello-world/" class="next">Hello World</a></div></div></div></div><div class="pure-u-1-4"><div id="sidebar"><div class="widget"><form action="//www.google.com/search" method="get" accept-charset="utf-8" target="_blank" class="search-form"><input type="text" name="q" maxlength="20" placeholder="Search"/><input type="hidden" name="sitesearch" value="http://liumx10.github.io"/></form></div><div class="widget"><div class="widget-title"><i class="fa fa-folder-o"> Categories</i></div></div><div class="widget"><div class="widget-title"><i class="fa fa-star-o"> Tags</i></div><div class="tagcloud"><a href="/tags/distributed-system/" style="font-size: 15px;">distributed system</a> <a href="/tags/concurrency-control/" style="font-size: 15px;">concurrency control</a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-file-o"> Recent</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2016/04/13/CC-3-1/">CC(3) 2PL(1)</a></li><li class="post-list-item"><a class="post-list-link" href="/2016/04/06/Distributed-snapshot/">Distributed snapshot</a></li><li class="post-list-item"><a class="post-list-link" href="/2016/04/06/GFS/">GFS</a></li><li class="post-list-item"><a class="post-list-link" href="/2016/03/28/cc2-2/">CC(2) "2. Serializability Theory(下)"</a></li><li class="post-list-item"><a class="post-list-link" href="/2016/03/27/hello-world/">Hello World</a></li><li class="post-list-item"><a class="post-list-link" href="/2016/03/27/cc2-1/">CC(2) "2. Serializability Theory(上)"</a></li><li class="post-list-item"><a class="post-list-link" href="/2016/03/14/cc-1/">CC(1) "1. The Problem"</a></li><li class="post-list-item"><a class="post-list-link" href="/2016/03/07/lock-free/">lock-free</a></li><li class="post-list-item"><a class="post-list-link" href="/2016/02/28/Branch-Prediction/">Branch-Prediction</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-external-link"> Blogroll</i></div><ul></ul><a href="http://madsys.cs.tsinghua.edu.cn/" title="madsys" target="_blank">madsys</a></div></div></div><div class="pure-u-1 pure-u-md-3-4"><div id="footer">© <a href="/." rel="nofollow">Dreamworks.</a> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a><a rel="nofollow" target="_blank" href="https://github.com/tufu9441/maupassant-hexo"> Theme</a> by<a rel="nofollow" target="_blank" href="https://github.com/pagecho"> Cho.</a></div></div></div><a id="rocket" href="#top" class="show"></a><script type="text/javascript" src="/js/totop.js?v=0.0.0" async></script><script type="text/javascript" src="//cdn.bootcss.com/fancybox/2.1.5/jquery.fancybox.pack.js" async></script><script type="text/javascript" src="/js/fancybox.js?v=0.0.0" async></script><link rel="stylesheet" type="text/css" href="/css/jquery.fancybox.css?v=0.0.0"><script type="text/x-mathjax-config">MathJax.Hub.Config({"HTML-CSS": { preferredFont: "TeX", availableFonts: ["STIX","TeX"], linebreaks: { automatic:true }, EqnChunk: (MathJax.Hub.Browser.isMobile ? 10 : 50) },
+      tex2jax: { inlineMath: [ ["$", "$"], ["\\(","\\)"] ], processEscapes: true, ignoreClass: "tex2jax_ignore|dno",skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']},
+      TeX: {  noUndefined: { attributes: { mathcolor: "red", mathbackground: "#FFEEEE", mathsize: "90%" } }, Macros: { href: "{}" } },
+      messageStyle: "none"
+  });
+</script><script type="text/x-mathjax-config">MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for(i=0; i < all.length; i += 1) {
+        all[i].SourceElement().parentNode.className += ' has-jax';
+    }
+});
+</script><script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script><script type="text/javascript" src="/js/codeblock-resizer.js?v=0.0.0"></script><script type="text/javascript" src="/js/smartresize.js?v=0.0.0"></script></div></body></html>

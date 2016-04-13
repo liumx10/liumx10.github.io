@@ -1,0 +1,62 @@
+<!DOCTYPE html><html lang="en"><head><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description"><title>GFS | Dreamworks</title><link rel="stylesheet" type="text/css" href="/css/style.css?v=0.0.0"><link rel="stylesheet" type="text/css" href="//cdn.bootcss.com/normalize/3.0.3/normalize.min.css"><link rel="stylesheet" type="text/css" href="//cdn.bootcss.com/pure/0.6.0/pure-min.css"><link rel="stylesheet" type="text/css" href="//cdn.bootcss.com/pure/0.6.0/grids-responsive-min.css"><link rel="stylesheet" href="//cdn.bootcss.com/font-awesome/4.5.0/css/font-awesome.min.css"><script type="text/javascript" src="//cdn.bootcss.com/jquery/2.2.1/jquery.min.js"></script><link rel="Shortcut Icon" type="image/x-icon" href="/favicon.ico"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden">GFS</h1><a id="logo" href="/.">Dreamworks</a><p class="description"></p></div><div id="nav-menu"><a href="/." class="current"><i class="fa fa-home"> Home</i></a><a href="/archives/"><i class="fa fa-archive"> Archive</i></a><a href="/about/"><i class="fa fa-user"> About</i></a><a href="/atom.xml"><i class="fa fa-rss"> RSS</i></a></div></div><div id="layout" class="pure-g"><div class="pure-u-1 pure-u-md-3-4"><div class="content_container"><div class="post"><h1 class="post-title">GFS</h1><div class="post-meta">Apr 6, 2016<script src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js" async></script><span id="busuanzi_container_page_pv"> | <span id="busuanzi_value_page_pv"></span><span> Hits</span></span></div><div class="post-content"><p>这学期上了康总的分布式系统的课程，每一节课学习一两篇分布式的论文。所以这里会有一个系列的文章，介绍这些论文，权当做一个复习资料。</p>
+<h1 id="GFS"><a href="#GFS" class="headerlink" title="GFS"></a>GFS</h1><p>GFS，BigTable和MapReduce，作为google的三驾马车，名声已经烂大街了。在现在所谓的大数据时代中，任何一个学计算机的人，如果不知道GFS，都不好意思出门了。</p>
+<p>GFS全称是Google File System。早年google内部实现的一个分布式文件系统，用了之后感觉效果很好，于是乎在2003年发了一篇SOSP，距今已经十几年了。而google本身是1998才成立的，所以我们有理由相信，GFS是在google诞生初始就开始开发使用了。</p>
+<p>在此之前，分布式文件系统的概念已经有了。然而在google的应用场景中，有了如下的条件：</p>
+<ol>
+<li>机器出错是一个常态；因为机器的数目太多了。一台linux机器可以持续运行不出错的时间大概在1w到10w个小时之间；如果几千台机器一起运行，所有机器不出错的持续时间可能只有几个小时。</li>
+<li>以往的文件系统处理的是大文件，都是在GB或者TB以上；所以对小文件的支持就很差。所以可能需要有一种可以调节的参数进行设计。</li>
+<li>文件的append（在结尾处追加）是常态；而随机写很少。所以重点优化对象是append。</li>
+<li>下层文件系统的设计和上层应用的设计是一起进行的。所以有些接口为了方便，跟传统的单机文件系统不太一样。比如文件系统支持原子的append操作，这样多个客户端直接不用上锁，可以直接调用接口。</li>
+</ol>
+<p>当年（2003年之前）GFS已经布置起来了多个集群，其中大的有1k个机器，300TB的硬盘空间。（现在一台机器就已经几十个TB的存储空间了）</p>
+<p>下面我们将详细介绍整个系统。</p>
+<h2 id="2-系统设计"><a href="#2-系统设计" class="headerlink" title="2. 系统设计"></a>2. 系统设计</h2><h3 id="2-1-假设条件"><a href="#2-1-假设条件" class="headerlink" title="2.1 假设条件"></a>2.1 假设条件</h3><ol>
+<li>使用了大量廉价机器，所以机器很容易坏。所以系统本身必须支持容错。</li>
+<li>主要的对象是大文件，通常是GB这个量级。小文件的优化不作考虑。</li>
+<li>读的操作有两种：大量顺序读和少量随机读；</li>
+<li>写的操作主要是大量的append；少量的随机写也支持，但是性能不用重点考虑。</li>
+<li>需要重点考虑多个client append的情况，提供良好的语义（也就是说client用起来方便）</li>
+<li>要求高带宽，不要求低延迟；</li>
+</ol>
+<h3 id="2-2-接口"><a href="#2-2-接口" class="headerlink" title="2.2 接口"></a>2.2 接口</h3><p>很像posix的文件接口，create, delete, open, close, read, write都支持。</p>
+<p>此外支持snapshot和append。后者保证是一个院子操作。</p>
+<h3 id="2-3-构架"><a href="#2-3-构架" class="headerlink" title="2.3 构架"></a>2.3 构架</h3><p>下面祭出了这张著名的构架图。有一个master节点和多个chunkserver，以及多个client相连。这些都是linux的用户态程序，直接调用的是操作系统的提供的文件接口。<br><img src="/img/gfs1.png" alt=""></p>
+<p>每个文件被切成一块一块的，每个chunk都是有一个独特的id，被当成普通文件，存在chunkserver上。master节点负责记录这些chunk的信息。比如一个文件被切成了多少块，每一块在哪个机器上。一般情况一下，一个chunk会有若干个副本，防止其中某一台机器挂掉了，文件不会丢失。</p>
+<p>而client会通过API与系统交互，读写数据。API和master交换元数据，和chunkserver交换真正的文件数据。</p>
+<h3 id="2-4-master"><a href="#2-4-master" class="headerlink" title="2.4 master"></a>2.4 master</h3><p>master节点只有一个，这样可以大大简化系统的设计（当然也会有单点故障之类的问题）。所以为了防止瓶颈出现在master上，任何文件数据都是client和chunkserver自己直接交互的。master只负责提供元数据。</p>
+<p>比如上图中，因为知道了chunk的大小，client可以计算出需要的数据的文件名和chunk编号，发送给master；master返回对应的chunk的地址；client再跟具体的chunkserver进行数据交互。</p>
+<h3 id="2-5-chunk-size"><a href="#2-5-chunk-size" class="headerlink" title="2.5 chunk size"></a>2.5 chunk size</h3><p>该值设为64MB，因为大有下面几个好处：</p>
+<ol>
+<li>chunk少了，client访问master次数变少；</li>
+<li>client和chunkserver的访问次数变少，因为更多的请求可以在一个chunk里完成；</li>
+<li>元数量变少，master的容量压力变小。</li>
+</ol>
+<h3 id="2-6-元数据"><a href="#2-6-元数据" class="headerlink" title="2.6 元数据"></a>2.6 元数据</h3><p>主要存了三种数据：1. 文件的命名空间，2. 文件到chunk的映射表，3. chunk的副本信息。都是存在内存中的，但是前两种需要log防止crash，甚至需要备份log到另外一台机器；chunk的信息由chunserver自己报告给master，有一个heartbeat信息。这部分信息不用存在磁盘上。</p>
+<h4 id="2-6-1-内存数据结构"><a href="#2-6-1-内存数据结构" class="headerlink" title="2.6.1 内存数据结构"></a>2.6.1 内存数据结构</h4><p>其实关于内存的一个问题就是能不能放得下所有数据。每个chunk 64MB，占用的元数据不到64B，而同时大部分的chunk都是满的。所以1GB的内存，可以存储1PB的文件。</p>
+<h4 id="2-6-2-chunk的位置"><a href="#2-6-2-chunk的位置" class="headerlink" title="2.6.2 chunk的位置"></a>2.6.2 chunk的位置</h4><p>正如前文所说，master开始并不存每个chunk到底存在哪个chunkserver上。它是向chunkserver请求heartbeat信息来获取。这样其实可以大大减少一致性等问题的复杂性，这样chunk的信息完全由chunkserver决定的。</p>
+<h4 id="2-6-3-Operation-log"><a href="#2-6-3-Operation-log" class="headerlink" title="2.6.3 Operation log"></a>2.6.3 Operation log</h4><p>为了防止master节点的故障，需要对操作打log，并且存在不同机器的硬盘上。只有log被flush到硬盘上之后，才会给client发回成功信息，这样保证语义的正确性。</p>
+<p>重启的时候，需要把log重新执行一遍；为了防止log太长，所以每隔一段时间需要做一个snapshot，把状态保存下来；在此基础上执行log，这样的log会少很多。</p>
+<h3 id="2-7-一致性模型"><a href="#2-7-一致性模型" class="headerlink" title="2.7 一致性模型"></a>2.7 一致性模型</h3><p>一致性的问题，在分布式系统里是一个基础问题。因为GFS的特殊结构：一个文件切分成多个chunk，每个chunk分成多个复本；而多个client可能同时操作同一个文件，所以一致性也分成两个问题：</p>
+<ol>
+<li>多个chunk之间的一致性。是不是一致的。即不同的chunk最新状态是不是由同一个操作完成的。</li>
+<li>同一个chunk多个复本，是不是一致的。</li>
+</ol>
+<p>一致性分为三个级别：</p>
+<ol>
+<li>consistent，所有的client看到的数据是一致的；不管什么时候；</li>
+<li>inconsistent, 两个client看到的数据不一样；</li>
+<li>defined，不仅仅是consistent，同时知道每个操作是谁完成的。所以，这是最强的一致性要求。</li>
+</ol>
+<p>（待续）</p>
+</div><script type="text/javascript" src="/js/share.js?v=0.0.0" async></script><a data-url="http://liumx10.github.io/2016/04/06/GFS/" data-id="cimyvfe0p0007fkclirr2vni7" class="article-share-link">Share</a><div class="tags"><a href="/tags/distributed-system/">distributed system</a></div><div class="post-nav"><a href="/2016/04/06/Distributed-snapshot/" class="pre">Distributed snapshot</a><a href="/2016/03/28/cc2-2/" class="next">CC(2) &quot;2. Serializability Theory(下)&quot;</a></div></div></div></div><div class="pure-u-1-4"><div id="sidebar"><div class="widget"><form action="//www.google.com/search" method="get" accept-charset="utf-8" target="_blank" class="search-form"><input type="text" name="q" maxlength="20" placeholder="Search"/><input type="hidden" name="sitesearch" value="http://liumx10.github.io"/></form></div><div class="widget"><div class="widget-title"><i class="fa fa-folder-o"> Categories</i></div></div><div class="widget"><div class="widget-title"><i class="fa fa-star-o"> Tags</i></div><div class="tagcloud"><a href="/tags/distributed-system/" style="font-size: 15px;">distributed system</a> <a href="/tags/concurrency-control/" style="font-size: 15px;">concurrency control</a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-file-o"> Recent</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2016/04/13/CC-3-1/">CC(3) 2PL(1)</a></li><li class="post-list-item"><a class="post-list-link" href="/2016/04/06/Distributed-snapshot/">Distributed snapshot</a></li><li class="post-list-item"><a class="post-list-link" href="/2016/04/06/GFS/">GFS</a></li><li class="post-list-item"><a class="post-list-link" href="/2016/03/28/cc2-2/">CC(2) "2. Serializability Theory(下)"</a></li><li class="post-list-item"><a class="post-list-link" href="/2016/03/27/hello-world/">Hello World</a></li><li class="post-list-item"><a class="post-list-link" href="/2016/03/27/cc2-1/">CC(2) "2. Serializability Theory(上)"</a></li><li class="post-list-item"><a class="post-list-link" href="/2016/03/14/cc-1/">CC(1) "1. The Problem"</a></li><li class="post-list-item"><a class="post-list-link" href="/2016/03/07/lock-free/">lock-free</a></li><li class="post-list-item"><a class="post-list-link" href="/2016/02/28/Branch-Prediction/">Branch-Prediction</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-external-link"> Blogroll</i></div><ul></ul><a href="http://madsys.cs.tsinghua.edu.cn/" title="madsys" target="_blank">madsys</a></div></div></div><div class="pure-u-1 pure-u-md-3-4"><div id="footer">© <a href="/." rel="nofollow">Dreamworks.</a> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a><a rel="nofollow" target="_blank" href="https://github.com/tufu9441/maupassant-hexo"> Theme</a> by<a rel="nofollow" target="_blank" href="https://github.com/pagecho"> Cho.</a></div></div></div><a id="rocket" href="#top" class="show"></a><script type="text/javascript" src="/js/totop.js?v=0.0.0" async></script><script type="text/javascript" src="//cdn.bootcss.com/fancybox/2.1.5/jquery.fancybox.pack.js" async></script><script type="text/javascript" src="/js/fancybox.js?v=0.0.0" async></script><link rel="stylesheet" type="text/css" href="/css/jquery.fancybox.css?v=0.0.0"><script type="text/x-mathjax-config">MathJax.Hub.Config({"HTML-CSS": { preferredFont: "TeX", availableFonts: ["STIX","TeX"], linebreaks: { automatic:true }, EqnChunk: (MathJax.Hub.Browser.isMobile ? 10 : 50) },
+      tex2jax: { inlineMath: [ ["$", "$"], ["\\(","\\)"] ], processEscapes: true, ignoreClass: "tex2jax_ignore|dno",skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']},
+      TeX: {  noUndefined: { attributes: { mathcolor: "red", mathbackground: "#FFEEEE", mathsize: "90%" } }, Macros: { href: "{}" } },
+      messageStyle: "none"
+  });
+</script><script type="text/x-mathjax-config">MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for(i=0; i < all.length; i += 1) {
+        all[i].SourceElement().parentNode.className += ' has-jax';
+    }
+});
+</script><script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script><script type="text/javascript" src="/js/codeblock-resizer.js?v=0.0.0"></script><script type="text/javascript" src="/js/smartresize.js?v=0.0.0"></script></div></body></html>
