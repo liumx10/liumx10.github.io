@@ -1,0 +1,149 @@
+<!DOCTYPE html><html lang="en"><head><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description"><title>introduction to big data system | Dreamworks</title><link rel="stylesheet" type="text/css" href="/css/style.css?v=0.0.0"><link rel="stylesheet" type="text/css" href="//cdn.bootcss.com/normalize/3.0.3/normalize.min.css"><link rel="stylesheet" type="text/css" href="//cdn.bootcss.com/pure/0.6.0/pure-min.css"><link rel="stylesheet" type="text/css" href="//cdn.bootcss.com/pure/0.6.0/grids-responsive-min.css"><link rel="stylesheet" href="//cdn.bootcss.com/font-awesome/4.5.0/css/font-awesome.min.css"><script type="text/javascript" src="//cdn.bootcss.com/jquery/2.2.1/jquery.min.js"></script><link rel="Shortcut Icon" type="image/x-icon" href="/favicon.ico"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden">introduction to big data system</h1><a id="logo" href="/.">Dreamworks</a><p class="description"></p></div><div id="nav-menu"><a href="/." class="current"><i class="fa fa-home"> Home</i></a><a href="/archives/"><i class="fa fa-archive"> Archive</i></a><a href="/about/"><i class="fa fa-user"> About</i></a><a href="/atom.xml"><i class="fa fa-rss"> RSS</i></a></div></div><div id="layout" class="pure-g"><div class="pure-u-1 pure-u-md-3-4"><div class="content_container"><div class="post"><h1 class="post-title">introduction to big data system</h1><div class="post-meta">Apr 18, 2016<script src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js" async></script><span id="busuanzi_container_page_pv"> | <span id="busuanzi_value_page_pv"></span><span> Hits</span></span></div><div class="post-content"><h2 id="1-2-introduction"><a href="#1-2-introduction" class="headerlink" title="1-2. introduction"></a>1-2. introduction</h2><p>跟传统数据分析处理比起来，有三个明显区别。</p>
+<ol>
+<li>采样计算变成全数据计算。采样</li>
+<li>精确的数据变为带有噪音的数据。</li>
+<li>重点考虑因果变为求出相关关系。</li>
+</ol>
+<p>之所以能这么做是因为现有的硬件环境跟上来了（摩尔定律）。然而，摩尔定律必然会有它的天花板，不能一直持续下去；而另外一方面数据量增长速度，超过了摩尔定律。所以只能考虑并行/分布式的处理方式。</p>
+<p>并行计算/分布式计算很火，但是我们需要考虑的一件事就是是否有必要。因为超频的存在，通过加大电压，可以使得处理器频率变高，性能提升。一般来说，频率和电压的平方或者三次方成正比。所以如果一个并行系统，需要四个处理器，提升30%的性能，那么其实完全没有必要，加电压1.3倍，耗能最多增加2.2倍，而4个处理器需要4倍。</p>
+<h4 id="Amdahl’-Law"><a href="#Amdahl’-Law" class="headerlink" title="Amdahl’ Law"></a>Amdahl’ Law</h4><p>并行部分比例是p，$1-p + \frac{p}{n}$, 当n无限大的时候，时间为1-p，加速比最多能达到$\frac{1}{1-p}$。这是较为悲观的一种规则。</p>
+<h4 id="Gustafson’-Lasw"><a href="#Gustafson’-Lasw" class="headerlink" title="Gustafson’ Lasw"></a>Gustafson’ Lasw</h4><p>认为问题的规模是不固定的（和Amdahl相反），实际上也是这样的。为了提高精度，需要更多的数据。以为因为硬件条件的限制，数据量较少；当机器能力上去之后，数据量会增多。</p>
+<p>所以我们可以认为，问题的规模是$S = a(n) + p(1-a(n))$，a表示串行部分，p表示处理器数量，n表示问题的规模。所以，当a(n)为常量的时候，加速比可以趋向于p。这是一个很乐观的规则。</p>
+<p>真实系统的性能在两条规则中间。</p>
+<p>并行的问题有：</p>
+<ol>
+<li>并行度小，有时候数据有先后依赖，有的部分只能串行；发现并行性对程序员要求很高。</li>
+<li>load balance</li>
+<li>同步问题</li>
+</ol>
+<h3 id="线程内存模型"><a href="#线程内存模型" class="headerlink" title="线程内存模型"></a>线程内存模型</h3><p>线程的概念勿用多说。这里提一下线程的内存模型。我们知道，一个进程是一个独立的单元，内部可能会有多个线程。线程共享一个堆栈，代码段，虚拟地址空间，文件操作符;而线程有自己单独的stack，寄存器，pc等。但是线程之间可以互相访问彼此的stack！</p>
+<p>上述是操作系统层面，再看看编译里是如何做的。以POSIX pthread为例，分为三种变量：全局变量；局部非静态变量；局部静态变量。只有局部非静态变量会在每个线程里有一份单独的空间，其它两种全局都只有一个！</p>
+<p>为了防止数据竞争，所以可能需要加锁。</p>
+<h3 id="Openmp"><a href="#Openmp" class="headerlink" title="Openmp"></a>Openmp</h3><p>pthread性能很好，灵活性也很好，基本所有的多线程功能都能实现。但是有时候并没有那么好用，可编程性差，而且在windows上没法用。所以openmp这时候就比较好用了。</p>
+<p>需要记住的是openmp四种线程调度模式。以及<code>#pragma omp critical</code>表示临界区域。</p>
+<h2 id="3-MPI"><a href="#3-MPI" class="headerlink" title="3. MPI"></a>3. MPI</h2><p>上一章说的都是单进程多线程。MPI全称是消息传递接口，指的是多进程交互。因为是多进程，所以也可以跨机器。但一般来说，MPI的开销会比openmp大一点。因为进程开销比线程大。所以在集群环境下，每个机器跑一个进程，MPI负责它们之间的通信；每个进程内部用openmp跑多线程。</p>
+<p>MPI几个比较重要的概念：Group，Context，DataType，tag，以及比较常用的<code>MPI_BCAST, MPI_REDUCE</code></p>
+<h2 id="FOSTER’S-Design-Methodology"><a href="#FOSTER’S-Design-Methodology" class="headerlink" title="FOSTER’S Design Methodology"></a>FOSTER’S Design Methodology</h2><p>很神棍的东西。基本上是partition、communication、agglomeration、mapping四个步骤，来设计一个并行程序。其中partition分为数据和计算的partition两种。</p>
+<p>partition有几个设计原则很有意思：</p>
+<ol>
+<li>任务数比单机核数至少10倍；</li>
+<li>尽量减少重复存储数据和重复计算；</li>
+<li>每个任务尽可能差不多大小</li>
+<li>任务数和问题的规模是成单调关系。</li>
+</ol>
+<p>communication原则：</p>
+<ol>
+<li>每个任务的communication应当差不多；</li>
+<li>最好只和一小部分邻居通讯</li>
+<li>任务之间的通讯可以并行化</li>
+<li>任务可以并行执行计算</li>
+</ol>
+<p>Agglomeration，可以提高性能，维持可扩展性，简化编程，所以一般一个处理器一个聚合后的task</p>
+<ol>
+<li>注意数据的locality</li>
+<li>如果用一部分数据的拷贝，来减少通讯，注意多出来的计算需要能够和减少的通讯match</li>
+<li>数据的拷贝不能影响可扩展性</li>
+<li>多任务之间通讯计算的均衡，balance</li>
+<li>任务的数量和问题规模、系统有关</li>
+<li>代码的修改和聚合的好处之间应该有一个tradeoff</li>
+</ol>
+<p>mapping是把任务分到具体的处理器上，分为动态和静态两种。</p>
+<p>其实这部分在<code>MPI_REDUCE</code>等接口里，细节被cover掉了</p>
+<h2 id="4-测试内存带宽"><a href="#4-测试内存带宽" class="headerlink" title="4. 测试内存带宽"></a>4. 测试内存带宽</h2><h3 id="基础算法"><a href="#基础算法" class="headerlink" title="基础算法"></a>基础算法</h3><figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">test</span><span class="params">(<span class="keyword">int</span> elems, <span class="keyword">int</span> stride)</span> </span>&#123;</span><br><span class="line">	<span class="keyword">int</span> i;</span><br><span class="line">	<span class="keyword">long</span> result = <span class="number">0.0</span>; </span><br><span class="line">	<span class="keyword">volatile</span> <span class="keyword">long</span> sink;</span><br><span class="line">	<span class="keyword">for</span> (i = <span class="number">0</span>; i &lt; elems; i += stride) &#123; </span><br><span class="line">	    result += data[i];</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="指令级并行-instruction-level-parallelism"><a href="#指令级并行-instruction-level-parallelism" class="headerlink" title="指令级并行( instruction level parallelism )"></a>指令级并行( instruction level parallelism )</h3><p>优化之前，我们需要知道现有的机器能支持的特性。其中非常重要的一条就是指令级并行。有下面三种：</p>
+<ol>
+<li>超标量计算机。一次性可以执行多个指令。保证并行执行这些指令没有依赖关系。</li>
+<li>超流水，流水线的级别变多。</li>
+<li>向量计算机。指令是一条的，但是指令操作的数据有多个。也就是说一条指令计算多组数据。</li>
+</ol>
+<p>一般来说，这三种方式都有。即一台计算机会同时又超标量、流水和向量三种。所以可以针对这些做一些优化。</p>
+<h3 id="循环展开"><a href="#循环展开" class="headerlink" title="循环展开"></a>循环展开</h3><p>勿用多说，可以防止流水线被打断。实际上编译器会帮忙干这件事？</p>
+<h3 id="减少依赖"><a href="#减少依赖" class="headerlink" title="减少依赖"></a>减少依赖</h3><p>上面的基础做法中，result的值每一轮被计算，都要依赖上一轮的值。所以不能利用超标量。所以一种优化方式就是把加法拆开，如下所示。<br><figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">int</span> n = x.size();</span><br><span class="line">   <span class="keyword">for</span> (<span class="keyword">int</span> i=<span class="number">0</span>; i&lt;n; i+=<span class="number">8</span>)</span><br><span class="line">   &#123;</span><br><span class="line">           sum1 += x[i] + x[i+<span class="number">1</span>];</span><br><span class="line">           sum2 += x[i+<span class="number">2</span>] + x[i+<span class="number">3</span>];</span><br><span class="line">           sum3 += x[i+<span class="number">4</span>] + x[i+<span class="number">5</span>];</span><br><span class="line">           sum4 += x[i+<span class="number">6</span>] + x[i+<span class="number">7</span>];</span><br><span class="line">   &#125;</span><br><span class="line"></span><br><span class="line">   sum = sum1 + sum2 + sum3 + sum4;</span><br></pre></td></tr></table></figure></p>
+<p>这样sum1、sum2、sum3、sum4四个加法可以同时进行。</p>
+<h3 id="向量"><a href="#向量" class="headerlink" title="向量"></a>向量</h3><figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">define</span> VBYTES 16</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> VSIZE VBYTES/sizeof(data_t)</span></span><br><span class="line"><span class="keyword">typedef</span> <span class="keyword">int</span> <span class="keyword">data_t</span>;</span><br><span class="line"><span class="keyword">typedef</span> <span class="keyword">data_t</span> <span class="keyword">vec_t</span> __attribute__((vector_size(VBYTES)));</span><br><span class="line"></span><br><span class="line"><span class="keyword">typedef</span> <span class="keyword">union</span> &#123;</span><br><span class="line">       <span class="keyword">vec_t</span> v;</span><br><span class="line">       <span class="keyword">data_t</span> d[VSIZE];</span><br><span class="line">&#125; <span class="keyword">pack_t</span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">// header</span></span><br><span class="line"><span class="keyword">while</span> (((<span class="keyword">long</span>) data) % VBYTES &amp;&amp; cnt ) &#123;</span><br><span class="line">           result = result + *data++;</span><br><span class="line">           cnt--;</span><br><span class="line">   &#125;</span><br><span class="line">   <span class="keyword">while</span> (cnt &gt;= VSIZE) &#123;</span><br><span class="line">           <span class="keyword">vec_t</span> chunk = *((<span class="keyword">vec_t</span> *) data);</span><br><span class="line">           accum = accum + chunk;</span><br><span class="line">           data += VSIZE;</span><br><span class="line">           cnt -= VSIZE;</span><br><span class="line">   &#125;</span><br><span class="line">   <span class="comment">// tail</span></span><br><span class="line">   <span class="keyword">while</span> ( cnt ) &#123;</span><br><span class="line">           result = result + *data++;</span><br><span class="line">           cnt--;</span><br><span class="line">   &#125;</span><br></pre></td></tr></table></figure>
+<h3 id="多线程"><a href="#多线程" class="headerlink" title="多线程"></a>多线程</h3><p>在此基础上，包一个多线程的壳就好了。pthread、openmp都可以</p>
+<h2 id="5-MapReduce和Hadoop"><a href="#5-MapReduce和Hadoop" class="headerlink" title="5. MapReduce和Hadoop"></a>5. MapReduce和Hadoop</h2><p>机器的平均故障时间(MTBF),大概在1w-100w小时这个量级。然而，现代集群有上万台机器，所有机器不出错的，MTBF，即使单机达到1M小时，系统也只有100小时。如果单机的MTBF为10w小时，系统的MTBF不到24小时。而一些计算任务很有可能算好几天。所以一出错就重头开始，不是一个很好的策略。</p>
+<p>现代集群很多采取廉价机器，故障概率更大；而且对系统的弹性要求更高，能够动态增删节点。同时最好能支持多任务，并且能够有优先级调度。</p>
+<p>所以google做了一套大数据系统，内部使用，并且催生了GFS，MapReduce等著名的论文；而开源社区把这些想法都实现了一遍，成就了hadoop。</p>
+<ol>
+<li>GFS — HDFS</li>
+<li>MapReduce —- java Implementation</li>
+<li>Scheduler —- Yarn</li>
+<li>Chubby —- ZooKeeper</li>
+<li>BigTable —- HBase</li>
+</ol>
+<h3 id="MPI-模型缺点"><a href="#MPI-模型缺点" class="headerlink" title="MPI 模型缺点"></a>MPI 模型缺点</h3><ol>
+<li>一开始知道问题规模，系统规模。</li>
+<li>静态划分数据集。</li>
+</ol>
+<p>我们可以从openmp的动态调度获得启发。每次只做一小部分任务；如果有处理器空闲，则分配任务给它。一直保持处理器在工作即可。</p>
+<h3 id="MapReduce-原型"><a href="#MapReduce-原型" class="headerlink" title="MapReduce 原型"></a>MapReduce 原型</h3><p><code> Map: string -&gt; [ {key: value} ]</code><br><code> Reduce: key, [value] -&gt; value </code></p>
+<p>如kmeans<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">map</span><span class="params">(point p)</span>:</span><br><span class="line">	<span class="keyword">for</span> each mean in K means</span><br><span class="line">		find the closet mean M to <span class="keyword">this</span> point</span><br><span class="line">	<span class="title">emit_intermediate</span> <span class="params">(index of M, p)</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">void</span> <span class="title">reduce</span><span class="params">(index of cluster i, list of points lp)</span>:</span><br><span class="line">	calculate the new mean M’ <span class="keyword">for</span> points in lp</span><br><span class="line">	<span class="title">emit</span><span class="params">(M’)</span></span></span><br></pre></td></tr></table></figure></p>
+<h2 id="6-Spark为代表的内存计算"><a href="#6-Spark为代表的内存计算" class="headerlink" title="6. Spark为代表的内存计算"></a>6. Spark为代表的内存计算</h2><p>MapReduce 最大的缺点就是无状态的，做完了一轮就什么都么有剩下。所以有时候需要迭代多次，如k-means，pageRank，就需要把中间结果写到磁盘上去；下一轮迭代再读出来。</p>
+<p>内存计算是可行的，因为内存越来越大，而问题的规模有一定的上届。比如社交网络就是在10TB的量级。比较典型的内存计算应用：</p>
+<ol>
+<li>分布式共享内存</li>
+<li>分布式key-value store（Piccolo，RAMCloud，Redis)。其中RAMCloud用了一种buffered logging的技术来保证容错。就是在本地内存记log，然后在远程备份这些log和hashtable，然后刷磁盘。</li>
+</ol>
+<p>但是log和backup太慢，一般是10-100倍的时间消耗。解决方案就是spark里面的RDD(Resilient Distributed Datasets)。有如下特点</p>
+<ol>
+<li>由数据集合组成，而非单个数据</li>
+<li>只能有特定的操作，如map，filter，join等。</li>
+<li>不可改变，如果想改变，必须新建一个RDD</li>
+</ol>
+<p>因为不可改变，所以每个RDD都是一个点，由一个或多个RDD生成一个新的RDD，然后我们就有了一个RDD的生成图。我们只需要记住这些操作即可，如果有错误发生，重新走一遍这些操作就可以得到原来的RDD了。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">messages = textFile(...).filter(_.contains(“error”))</span><br><span class="line">                        .map(_.split(‘\t’)(<span class="number">2</span>))</span><br></pre></td></tr></table></figure>
+<p>上面代码会生成3个RDD，从HDFS读一个RDD, filter之后一个RDD,map之后一个RDD。</p>
+<h3 id="Spark-接口"><a href="#Spark-接口" class="headerlink" title="Spark 接口"></a>Spark 接口</h3><p>两种接口：</p>
+<ol>
+<li>transformation，创建新的RDD,如map，filter，groupBy，sort，distinct，sample，reduceByKey等操作；</li>
+<li>reduce，从一个RDD获得单个数值，如reduce，count，collect，first，foreach等等。</li>
+</ol>
+<h3 id="Spark实现"><a href="#Spark实现" class="headerlink" title="Spark实现"></a>Spark实现</h3><p>比较有特点的是lazy evaluation，即一般的transformation不会触发计算，只有最后的reuce会触发整个DAG上的RDD的计算。</p>
+<p>另外就是数据划分，以pageRank为例：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">links = <span class="comment">// RDD of (url, neighbors) pairs</span></span><br><span class="line">ranks = <span class="comment">// RDD of (url, rank) pairs</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span> (i &lt;- <span class="number">1</span> to iterations)&#123;</span><br><span class="line">	ranks = links.join(ranks).flatMap&#123;</span><br><span class="line">		(url, (links, rank)) =&gt; </span><br><span class="line">			links.map(dest =&gt; (dest, rank/links.size))</span><br><span class="line">	&#125;.reduceByKey(_ + _)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>因为每一轮links和ranks都会做一个join，所以partition的时候会尽可能把相同url的links和ranks放在同一个机器上。而且有一个函数叫PartionBy，专门来定义如何partition。</p>
+<p>Spark的persist，指的是一个RDD应该怎么放。分为好几级。如Memory Only，只会存在内存中，如果不够大了，一些partition就会扔掉，等用到的时候重新计算。如果是Memory_And_Disk, 则在存不下的时候存到硬盘上；最极端的如DIS_ONLY，只存硬盘。</p>
+<p>限制就是如果稍微改RDD中一个小数据，就需要复制一个新的RDD。如BFS就是一个很好的例子。</p>
+<h2 id="7-流计算"><a href="#7-流计算" class="headerlink" title="7. 流计算"></a>7. 流计算</h2><p>之前所说的mapreduce 或者 RDD都可以说是批处理。batch。</p>
+<p>但有些场景，比如满足量特别大，数据产生速度特别快，就不适应了。</p>
+<p>流计算的模型可以用公式$F(X+\Delta X) = F(X)$  op  $H(\Delta X)$。比如twitter分析，统计每个url被某个状态引用的次数。来了一个新的状态，不需要重新计算所有，只需要在原来的基础上加上一些值就可以了。</p>
+<p>流计算的要求是：实时性；容错性和可编程性。第一点是流计算区别之前两个framework的特点。</p>
+<h3 id="一种naive的实现方式：Worker-Queue"><a href="#一种naive的实现方式：Worker-Queue" class="headerlink" title="一种naive的实现方式：Worker+Queue"></a>一种naive的实现方式：Worker+Queue</h3><p>队列是生成者向消费者发送的消息队列。Send语句用到了java的Future特性，即是异步通信。得到需要知道Send返回结果的时候，才会block。</p>
+<ol>
+<li>全局有Producer和Customer两种角色。</li>
+<li>Producer产生消息，发送到队列里；队列分配消息到对应的Customer上；</li>
+<li>Customer再对数据库进行相应的操作。</li>
+</ol>
+<p><img src="/img/stream1.png" alt="naive流计算流程图"></p>
+<p>问题就是在可扩展性、容错方面很差，代码估计也很哪写。可能是因为这个queue实现起来太复杂了。</p>
+<h3 id="流计算框架1：S4-Simple-Scalable-Streaming-System"><a href="#流计算框架1：S4-Simple-Scalable-Streaming-System" class="headerlink" title="流计算框架1：S4 - Simple Scalable Streaming System"></a>流计算框架1：S4 - Simple Scalable Streaming System</h3><p>S4支持有限的容错，用的是backup，原机器挂了就挂了，状态全部丢失，用backup代替。也不支持动态增删节点。</p>
+<p>模型中重要的概念有PE（processing Element）和event，PE负责计算，彼此之间通过event交换信息，而不能直接访问数据。S4的框架帮我们做message的路由，需要我们自己实现PE和event。内部数据也都是(key, attribute)这样的形式。下图是个很好的例子</p>
+<p><img src="/img/stream2.png" alt="S4算word count"></p>
+<p>这幅图说明什么意思呢？开始的时候进来一句话，分词，然后根据单词作为key，分到不同的WordCountPE上。<strong> 注意，这里用单词作为key，确保同一个单词进入同一个PE。 </strong> 然后在WordCountPE上，将单词的数量进行累加，然后把结果发送到SortPE上。<strong>注意，这里的key是一个sortID，即每个WordCountPE生成的结果都会发送到同一个SortPE</strong> 然后SortPE根据现有的数量状态，把结果发送到MergePE上。</p>
+<p>我们可以很轻松地想象出代码怎么写，虽然我没用过S4。关键是SortPE上维持一个定长的数列，每进来一个新的{word, count}对，对比看看有没有当前的队列里最小的数值大，有的话，将最后一个扔出去，插进新的来。所以SortPE能保证自己存有最新的排名最靠前的word的信息；而WordCountPE能保证自己有自己存储的word的count信息。所有PE的状态都是对的。</p>
+<p><strong> 一个key对应一个PE，如果一个新的单词出现了，会有一个新的PE随之创建 </strong> 所以PE的垃圾回收是一个问题，而且很耗内存。</p>
+<h3 id="另外一种流计算框架：Storm"><a href="#另外一种流计算框架：Storm" class="headerlink" title="另外一种流计算框架：Storm"></a>另外一种流计算框架：Storm</h3><p>Storm里面重要的两个概念就是spout和bolts，比喻很形象，创建数据的都是spout，中间执行都是bolts。bolts可以执行各种操作，由用户来实现。</p>
+<p><img src="/img/stream3.png" alt="storm原理图"></p>
+<p>有了bolts，怎么让他们连起来呢？这就有了grouping的概念，Group是把bolts跟bolts连起来的操作。连起来之后可以保证前面blot/spout的输出能到达后面的blot。</p>
+<p>有趣的是storm支持多种不同的容错：最多一次；恰好一次；至少一次；最多一次天然支持；我们来看至少一次怎么支持。</p>
+<p>当spout发送一组数据的时候有一个全局的message id，当blot发送消息的时候，把output和input联系起来；当bolt完成计算，对input返回一个ack/fail。具体方式是：</p>
+<ol>
+<li>spout有个全局的id，sid，发出去的时候就产生了，然后记录到全局中：[ sid： sid ]</li>
+<li>bolt收到，根据input产生输出，形成一个新的tid，把所有input的sid和新产生的tid发到下一个bolt；同时在全局的sid中，sid对应的数值与tid做一个异或的操作。</li>
+<li>bolt确认自己所有的操作都完了，把input的sid（也可能是tid）与全局做一个异或。</li>
+</ol>
+<p>纵观上面的算法，如果一个bolt，成功收到，并成功执行，会对输入的input的tid，做两次异或，结果等于0.所以只有最终全局变量sid等于0。这样就能确保执行失败会被发现。</p>
+<p>恰好一次老师没有细说，估计比较复杂。</p>
+<p>总体来说storm还是比S4复杂。（其实到现在还是没明白storm怎么写代码，但是S4可以想象）。但现在storm是apache的顶级项目，社区很活跃，被twitter使用。而S4稍微差一点，也是apache的项目。</p>
+</div><script type="text/javascript" src="/js/share.js?v=0.0.0" async></script><a data-url="http://liumx10.github.io/2016/04/18/introduction-to-big-data-system/" data-id="cin62lkic00005jclwwyzg35g" class="article-share-link">Share</a><div class="tags"><a href="/tags/big-data/">big data</a><a href="/tags/课程笔记/">课程笔记</a></div><div class="post-nav"><a href="/2016/04/13/CC-3-1/" class="next">CC(3) 2PL(1)</a></div></div></div></div><div class="pure-u-1-4"><div id="sidebar"><div class="widget"><form action="//www.google.com/search" method="get" accept-charset="utf-8" target="_blank" class="search-form"><input type="text" name="q" maxlength="20" placeholder="Search"/><input type="hidden" name="sitesearch" value="http://liumx10.github.io"/></form></div><div class="widget"><div class="widget-title"><i class="fa fa-folder-o"> Categories</i></div></div><div class="widget"><div class="widget-title"><i class="fa fa-star-o"> Tags</i></div><div class="tagcloud"><a href="/tags/concurrency-control/" style="font-size: 15px;">concurrency control</a> <a href="/tags/distributed-system/" style="font-size: 15px;">distributed system</a> <a href="/tags/big-data/" style="font-size: 15px;">big data</a> <a href="/tags/课程笔记/" style="font-size: 15px;">课程笔记</a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-file-o"> Recent</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2016/04/18/introduction-to-big-data-system/">introduction to big data system</a></li><li class="post-list-item"><a class="post-list-link" href="/2016/04/13/CC-3-1/">CC(3) 2PL(1)</a></li><li class="post-list-item"><a class="post-list-link" href="/2016/04/06/Distributed-snapshot/">Distributed snapshot</a></li><li class="post-list-item"><a class="post-list-link" href="/2016/04/06/GFS/">GFS</a></li><li class="post-list-item"><a class="post-list-link" href="/2016/03/28/cc2-2/">CC(2) "2. Serializability Theory(下)"</a></li><li class="post-list-item"><a class="post-list-link" href="/2016/03/27/hello-world/">Hello World</a></li><li class="post-list-item"><a class="post-list-link" href="/2016/03/27/cc2-1/">CC(2) "2. Serializability Theory(上)"</a></li><li class="post-list-item"><a class="post-list-link" href="/2016/03/14/cc-1/">CC(1) "1. The Problem"</a></li><li class="post-list-item"><a class="post-list-link" href="/2016/03/14/concurrency-control-1/">CC(1) "1. The Problem"</a></li><li class="post-list-item"><a class="post-list-link" href="/2016/03/07/lock-free/">lock-free</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-external-link"> Blogroll</i></div><ul></ul><a href="http://madsys.cs.tsinghua.edu.cn/" title="madsys" target="_blank">madsys</a></div></div></div><div class="pure-u-1 pure-u-md-3-4"><div id="footer">© <a href="/." rel="nofollow">Dreamworks.</a> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a><a rel="nofollow" target="_blank" href="https://github.com/tufu9441/maupassant-hexo"> Theme</a> by<a rel="nofollow" target="_blank" href="https://github.com/pagecho"> Cho.</a></div></div></div><a id="rocket" href="#top" class="show"></a><script type="text/javascript" src="/js/totop.js?v=0.0.0" async></script><script type="text/javascript" src="//cdn.bootcss.com/fancybox/2.1.5/jquery.fancybox.pack.js" async></script><script type="text/javascript" src="/js/fancybox.js?v=0.0.0" async></script><link rel="stylesheet" type="text/css" href="/css/jquery.fancybox.css?v=0.0.0"><script type="text/x-mathjax-config">MathJax.Hub.Config({"HTML-CSS": { preferredFont: "TeX", availableFonts: ["STIX","TeX"], linebreaks: { automatic:true }, EqnChunk: (MathJax.Hub.Browser.isMobile ? 10 : 50) },
+      tex2jax: { inlineMath: [ ["$", "$"], ["\\(","\\)"] ], processEscapes: true, ignoreClass: "tex2jax_ignore|dno",skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']},
+      TeX: {  noUndefined: { attributes: { mathcolor: "red", mathbackground: "#FFEEEE", mathsize: "90%" } }, Macros: { href: "{}" } },
+      messageStyle: "none"
+  });
+</script><script type="text/x-mathjax-config">MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for(i=0; i < all.length; i += 1) {
+        all[i].SourceElement().parentNode.className += ' has-jax';
+    }
+});
+</script><script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script><script type="text/javascript" src="/js/codeblock-resizer.js?v=0.0.0"></script><script type="text/javascript" src="/js/smartresize.js?v=0.0.0"></script></div></body></html>
