@@ -1,0 +1,79 @@
+<!DOCTYPE html><html lang="en"><head><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description"><title>算法(下) | Dreamworks</title><link rel="stylesheet" type="text/css" href="/css/style.css?v=0.0.0"><link rel="stylesheet" type="text/css" href="//cdn.bootcss.com/normalize/3.0.3/normalize.min.css"><link rel="stylesheet" type="text/css" href="//cdn.bootcss.com/pure/0.6.0/pure-min.css"><link rel="stylesheet" type="text/css" href="//cdn.bootcss.com/pure/0.6.0/grids-responsive-min.css"><link rel="stylesheet" href="//cdn.bootcss.com/font-awesome/4.5.0/css/font-awesome.min.css"><script type="text/javascript" src="//cdn.bootcss.com/jquery/2.2.1/jquery.min.js"></script><link rel="Shortcut Icon" type="image/x-icon" href="/favicon.ico"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden">算法(下)</h1><a id="logo" href="/.">Dreamworks</a><p class="description"></p></div><div id="nav-menu"><a href="/." class="current"><i class="fa fa-home"> Home</i></a><a href="/archives/"><i class="fa fa-archive"> Archive</i></a><a href="/about/"><i class="fa fa-user"> About</i></a><a href="/atom.xml"><i class="fa fa-rss"> RSS</i></a></div></div><div id="layout" class="pure-g"><div class="pure-u-1 pure-u-md-3-4"><div class="content_container"><div class="post"><h1 class="post-title">算法(下)</h1><div class="post-meta">Jun 18, 2016<script src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js" async></script><span id="busuanzi_container_page_pv"> | <span id="busuanzi_value_page_pv"></span><span> Hits</span></span></div><div class="post-content"><h1 id="5-贪心算法"><a href="#5-贪心算法" class="headerlink" title="5. 贪心算法"></a>5. 贪心算法</h1><p>每一步选择都是最优的局部解，最后发现是全局最优。</p>
+<h2 id="活动选择问题"><a href="#活动选择问题" class="headerlink" title="活动选择问题"></a>活动选择问题</h2><p>很像最优二叉子树。选择一个中间的活动，然后求前后两段的最优解。实际上是一个动态规划问题。</p>
+<p>但是没有必要动归。可以按照结束实际排序。子问题中，结束最早的肯定在最大兼容活动中；且s[i..k]为空。</p>
+<p>所以用一个递归就可以解决；当然也可以用迭代来消除尾递归。</p>
+<p>贪心算法的本质是通过一系列的选择来达到一个最优解。</p>
+<h2 id="贪心基本策略"><a href="#贪心基本策略" class="headerlink" title="贪心基本策略"></a>贪心基本策略</h2><p>贪心选择性质：</p>
+<ol>
+<li>全局最优解，可以通过局部最优解的选择来达到。</li>
+<li>最优子结构：如果最优解包含了子问题的最优解。称该问题具有最优子结构。</li>
+</ol>
+<p>和动态规划的区别在于能否贪心地选择局部最优解。经典的例子就是0-1背包问题和分数背包问题。前者不可贪心，后者可以。</p>
+<h2 id="赫夫曼编码"><a href="#赫夫曼编码" class="headerlink" title="赫夫曼编码"></a>赫夫曼编码</h2><p>考虑：</p>
+<ol>
+<li>不能有前缀关系。也就是说，在构成搜索树的时候，所有的值必须在叶子节点上。这种编码称为前缀编码。</li>
+<li>前缀编码可以直接连起来存在文件中。解析唯一。</li>
+</ol>
+<p>编码二叉树：</p>
+<ol>
+<li>最优编码总是满的二叉树。</li>
+<li>恰有|C|个叶子和|C|-1个内部节点。</li>
+</ol>
+<p>算法很简单，略。</p>
+<p>有趣的是节点管理是用一个最小二叉堆来实现的。所以插入和换出的复杂度都是lgn。整个循环需要nlgn的时间。</p>
+<p>正确性的证明：</p>
+<ol>
+<li>贪心选择：最小的两个字符x，y，存在一种最优编码，二者长度相同，最后一位不同。（思路是找到一个最优的树，里面最深的两个点a，b，置换x，y和a，b）</li>
+<li>替换x，y为z，构成新的字符集，生成一棵最优编码树；再替换回来，也是一棵最优编码树。</li>
+</ol>
+<h2 id="拟阵"><a href="#拟阵" class="headerlink" title="拟阵"></a>拟阵</h2><p>非空集合和非空子集族（独立子集）组成的序对：</p>
+<ol>
+<li>遗传性，子集肯定也在l里面</li>
+<li>交换性，存在元素 B-A U A 也在l里面 ，注意存在即可！</li>
+</ol>
+<p>扩张：加入元素之后保持独立性；最大：没有任何扩张称为最大的。</p>
+<p>定理：最大独立子集一定是相同的；否则用交换性可以扩展出一个更大的。</p>
+<p>加权拟阵：每个元素有权值；每个子集的权值为各个元素的权值之和。</p>
+<h1 id="6-单源最短路"><a href="#6-单源最短路" class="headerlink" title="6. 单源最短路"></a>6. 单源最短路</h1><p>最短路径树，不一定唯一。</p>
+<p>松弛：测试是否通过u，找到一条更短的到v的路径。</p>
+<p>路径松弛定理：如果最短路是v[0,1,2,3…k]，沿v[0],v[1],v[2]。。。依次松弛，最终得到的v.d一定是最短路</p>
+<h2 id="Bellman-Ford算法"><a href="#Bellman-Ford算法" class="headerlink" title="Bellman-Ford算法"></a>Bellman-Ford算法</h2><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">initlize-single-source(G, s)</span><br><span class="line"><span class="keyword">for</span> i=<span class="number">1</span> to |G.V|<span class="number">-1</span></span><br><span class="line">	<span class="keyword">for</span> each edge (u, v) <span class="keyword">in</span> G.E</span><br><span class="line">		RELEASE(u, v, w)</span><br><span class="line"><span class="keyword">for</span> each edge (u, v) <span class="keyword">in</span> G.E</span><br><span class="line">	<span class="keyword">if</span> v.d &gt; u.d + w(u, v)</span><br><span class="line">		<span class="keyword">return</span> false</span><br><span class="line"><span class="keyword">return</span> true</span><br></pre></td></tr></table></figure>
+<p>总结来说就是进行|V|-1次松弛，肯定可以松弛掉所有的点。</p>
+<h2 id="有向无环图"><a href="#有向无环图" class="headerlink" title="有向无环图"></a>有向无环图</h2><p>先求拓扑排序，然后依照顺序进行松弛，O(V+E)</p>
+<h2 id="Dijkstra算法"><a href="#Dijkstra算法" class="headerlink" title="Dijkstra算法"></a>Dijkstra算法</h2><p>核心是分为确定的点和未确定的点；每次从未确定的点中找出最小值，松弛出边，并加入确定的点集。<br>性能主要看优先队列的实现，有insert（V）、extract-min(V)、decrease-key(E)三个操作。</p>
+<h1 id="7-平摊分析"><a href="#7-平摊分析" class="headerlink" title="7. 平摊分析"></a>7. 平摊分析</h1><h2 id="聚合分析"><a href="#聚合分析" class="headerlink" title="聚合分析"></a>聚合分析</h2><p>最坏情况下，n个操作的时间代价总和为T(n)，再求平均。<br>例子：multi_pop、二进制计数器</p>
+<h2 id="核算法"><a href="#核算法" class="headerlink" title="核算法"></a>核算法</h2><p>对不同操作赋予不同的费用，某些操作费用比实际多或者少。如果多了，差值作为信用（类似于银行里的存钱）。要求总存款大于0，即摊还代价总和大于实际代价。</p>
+<p>比如栈的实际代价push为1，可以设摊还代价为0，pop或者multipop的摊还代价为0。push多了1个的信用是用来支付pop时候的代价的。</p>
+<p>同理，计数器里，置1的时候摊还代价为2，用来支付将来置回0的操作。</p>
+<h2 id="势能法"><a href="#势能法" class="headerlink" title="势能法"></a>势能法</h2><p>势能和核算法很像。摊还代价为实际代价加上势能的增加量。</p>
+<p>比如栈上的势能函数为栈的高度（元素个数），每次push操作，实际代价为1，势能增加1，所以摊还代价为2；pop的时候，势能减少1或者k，摊还代价为0.</p>
+<p>计数器的例子，可以认为1的个数为势能。所以不管什么操作，摊还代价都是2.</p>
+<h2 id="动态表"><a href="#动态表" class="headerlink" title="动态表"></a>动态表</h2><p>很多数据结构，开始的时候并不知道需要分配多大的空间；所以当满的时候，扩容一倍；当只有1/4的时候，缩小一倍。我们看每次插入删除的平摊代价。</p>
+<p>聚合分析：算期望的时间代价<br>核算法：每次插入支付代价为3：自己的插入；自己将来的插入；表中旧的元素的插入<br>势能： 2num(T) - size      大于1/2<br>      size(T)/2 - num(T)   小于1/2</p>
+<h1 id="8-NP"><a href="#8-NP" class="headerlink" title="8. NP"></a>8. NP</h1><p>确定性算法：<br>判断问题：<br>非确定性算法：</p>
+<p>P类问题可以用多项式时间的确定性算法来进行判定或求解<br>NP类问题可以用多项式时间的非确定性算法进行判定或求解</p>
+<p>哈密顿回路是NP问题，是因为给出一个排列，可以在n方的时间内判断是否合法。</p>
+<h2 id="问题的规约"><a href="#问题的规约" class="headerlink" title="问题的规约"></a>问题的规约</h2><p>问题A的输入转化为B的输入，B的输出再转化为A的输出。</p>
+<p>比如配对问题，I’是一个排序问题，I是一个配对问题，两个排列中最小值与最小值配，次小值与次小值配，依次类推。所以I的方法是先将两个排列通过I’排序，再进行配对。</p>
+<p>因为输入输出转化都是多项式的，如果排序本身是多项式的，那么配对算法一定有一个多项式的上界。</p>
+<p>NP完全问题：NP类每一个问题都可以多项式转为NP的A问题，该问题为NP完全问题，NPC。</p>
+<p>NP问题包含P问题和NPC问题，但是NPC和P关系不定。有的NP问题甚至不能归到其中一类：线性规划问题、图的同构问题。</p>
+<p>NP难问题：NP问题都能转为该问题，但是这个问题本身不是被证明是NP问题。一般而言，NPC的判定问题，其对应的最优化问题为NPH问题。NPC属于NPH，只要属于NP就可以。</p>
+<p>NPC问题的证明：</p>
+<ol>
+<li>该问题属于NP问题，即可以找到多项式的验证算法。</li>
+<li>NP类的每一个问题都可以转化为该问题。</li>
+</ol>
+<h2 id="电路可满足性"><a href="#电路可满足性" class="headerlink" title="电路可满足性"></a>电路可满足性</h2><p>（默认已经证明）判定一个电路是否是可满足电路是NPC问题。</p>
+</div><script type="text/javascript" src="/js/share.js?v=0.0.0" async></script><a data-url="http://liumx10.github.io/2016/06/18/算法-下/" data-id="cipkvoihd001ei0clqo5pvefl" class="article-share-link">Share</a><div class="tags"><a href="/tags/课程笔记/">课程笔记</a></div><div class="post-nav"><a href="/2016/06/16/算法/" class="next">算法（上）</a></div></div></div></div><div class="pure-u-1-4"><div id="sidebar"><div class="widget"><form action="//www.google.com/search" method="get" accept-charset="utf-8" target="_blank" class="search-form"><input type="text" name="q" maxlength="20" placeholder="Search"/><input type="hidden" name="sitesearch" value="http://liumx10.github.io"/></form></div><div class="widget"><div class="widget-title"><i class="fa fa-folder-o"> Categories</i></div></div><div class="widget"><div class="widget-title"><i class="fa fa-star-o"> Tags</i></div><div class="tagcloud"><a href="/tags/concurrency-control/" style="font-size: 15px;">concurrency control</a> <a href="/tags/distributed-system/" style="font-size: 15px;">distributed system</a> <a href="/tags/课程笔记/" style="font-size: 15px;">课程笔记</a> <a href="/tags/big-data/" style="font-size: 15px;">big data</a> <a href="/tags/OLTP/" style="font-size: 15px;">OLTP</a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-file-o"> Recent</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2016/06/18/算法-下/">算法(下)</a></li><li class="post-list-item"><a class="post-list-link" href="/2016/06/16/算法/">算法（上）</a></li><li class="post-list-item"><a class="post-list-link" href="/2016/06/12/tpc-c/">tpc-c</a></li><li class="post-list-item"><a class="post-list-link" href="/2016/06/08/bayon/">Bayon（最终一致性）</a></li><li class="post-list-item"><a class="post-list-link" href="/2016/06/01/释放一致性/">释放一致性</a></li><li class="post-list-item"><a class="post-list-link" href="/2016/05/25/DSM/">分布式共享内存</a></li><li class="post-list-item"><a class="post-list-link" href="/2016/05/18/拜占庭算法/">拜占庭算法</a></li><li class="post-list-item"><a class="post-list-link" href="/2016/05/16/虚拟文件系统/">虚拟文件系统</a></li><li class="post-list-item"><a class="post-list-link" href="/2016/04/27/cc-4-1/">cc-4(1) "Non-locking concurrency control"</a></li><li class="post-list-item"><a class="post-list-link" href="/2016/04/27/cc-3-3/">cc-3-3</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-external-link"> Blogroll</i></div><ul></ul><a href="http://madsys.cs.tsinghua.edu.cn/" title="madsys" target="_blank">madsys</a></div></div></div><div class="pure-u-1 pure-u-md-3-4"><div id="footer">© <a href="/." rel="nofollow">Dreamworks.</a> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a><a rel="nofollow" target="_blank" href="https://github.com/tufu9441/maupassant-hexo"> Theme</a> by<a rel="nofollow" target="_blank" href="https://github.com/pagecho"> Cho.</a></div></div></div><a id="rocket" href="#top" class="show"></a><script type="text/javascript" src="/js/totop.js?v=0.0.0" async></script><script type="text/javascript" src="//cdn.bootcss.com/fancybox/2.1.5/jquery.fancybox.pack.js" async></script><script type="text/javascript" src="/js/fancybox.js?v=0.0.0" async></script><link rel="stylesheet" type="text/css" href="/css/jquery.fancybox.css?v=0.0.0"><script type="text/x-mathjax-config">MathJax.Hub.Config({"HTML-CSS": { preferredFont: "TeX", availableFonts: ["STIX","TeX"], linebreaks: { automatic:true }, EqnChunk: (MathJax.Hub.Browser.isMobile ? 10 : 50) },
+      tex2jax: { inlineMath: [ ["$", "$"], ["\\(","\\)"] ], processEscapes: true, ignoreClass: "tex2jax_ignore|dno",skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']},
+      TeX: {  noUndefined: { attributes: { mathcolor: "red", mathbackground: "#FFEEEE", mathsize: "90%" } }, Macros: { href: "{}" } },
+      messageStyle: "none"
+  });
+</script><script type="text/x-mathjax-config">MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for(i=0; i < all.length; i += 1) {
+        all[i].SourceElement().parentNode.className += ' has-jax';
+    }
+});
+</script><script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script><script type="text/javascript" src="/js/codeblock-resizer.js?v=0.0.0"></script><script type="text/javascript" src="/js/smartresize.js?v=0.0.0"></script></div></body></html>
